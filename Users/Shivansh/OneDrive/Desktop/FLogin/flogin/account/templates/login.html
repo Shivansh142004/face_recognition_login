@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Face Login</title>
+    <style>
+        body {
+            background: #f2f4f8;
+        }
+
+        .box {
+            width: 350px;
+            margin: 40px auto;
+            padding: 20px 25px 25px;
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            text-align: center;
+            font-family: Arial, sans-serif;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+        }
+
+        .box h3 {
+            margin-top: 0;
+            margin-bottom: 20px;
+            font-size: 20px;
+        }
+
+        .box input {
+            width: 90%;
+            padding: 10px;
+            margin: 10px 0 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .login-btn {
+            width: 100%;
+            background: #0066ff;
+            color: white;
+            padding: 12px;
+            border: none;
+            border-radius: 5px;
+            margin-top: 10px;
+            cursor: pointer;
+            font-size: 15px;
+        }
+
+        video, canvas {
+            width: 100%;
+            border-radius: 10px;
+            margin-top: 10px;
+            background: #000;
+        }
+
+        #message {
+            margin-top: 10px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<div class="box">
+    <h3>Login Page</h3>
+
+    <input type="text" id="username" placeholder="Enter username">
+    <input type="text" id="login_id" placeholder="Enter Login ID">
+
+    <video id="camera" autoplay></video>
+    <canvas id="canvas" width="350" height="250" style="display:none"></canvas>
+
+    <div id="message"></div>
+
+    <button class="login-btn" id="login-btn">Login</button>
+</div>
+
+<script>
+    const video = document.getElementById('camera');
+    const canvas = document.getElementById('canvas');
+    const loginBtn = document.getElementById('login-btn');
+    const usernameInput = document.getElementById('username');
+    const loginIdInput = document.getElementById('login_id');
+    const messageDiv = document.getElementById('message');
+
+    navigator.mediaDevices.getUserMedia({ video: true })
+        .then((stream) => {
+            video.srcObject = stream;
+        })
+        .catch((err) => {
+            messageDiv.style.color = "red";
+            messageDiv.innerHTML = "Camera not accessible. Allow camera permission.";
+        });
+
+    function checkInputs() {
+        if (usernameInput.value.trim() === "" || loginIdInput.value.trim() === "") {
+            messageDiv.style.color = "red";
+            messageDiv.innerHTML = "Please enter both Username and Login ID!";
+            return false;
+        }
+        return true;
+    }
+
+    loginBtn.addEventListener('click', () => {
+
+        if (!checkInputs()) return;
+
+        if (!video.srcObject) {
+            messageDiv.style.color = "red";
+            messageDiv.innerHTML = "Please allow the camera access!";
+            return;
+        }
+
+        const context = canvas.getContext('2d');
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const capturedImage = canvas.toDataURL('image/jpeg');
+
+        messageDiv.style.color = "orange";
+        messageDiv.innerHTML = "Verifying your face... ⏳";
+
+        const formData = new FormData();
+        formData.append("username", usernameInput.value.trim());
+        formData.append("login_id", loginIdInput.value.trim());
+        formData.append("face_image", capturedImage);
+
+        fetch("/login/", {
+            method: "POST",
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === "success") {
+                messageDiv.style.color = "green";
+                messageDiv.innerHTML = data.message || "Login successful!";
+
+                let url = data.redirect 
+                          ? data.redirect 
+                          : `/dashboard/?username=${usernameInput.value.trim()}&login_id=${loginIdInput.value.trim()}`;
+
+                setTimeout(() => {
+                    window.location.href = url;
+                }, 1000);
+
+            } else {
+                messageDiv.style.color = "red";
+                messageDiv.innerHTML = data.message || "Face did not match.";
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            messageDiv.style.color = "red";
+            messageDiv.innerHTML = "Server error! Try again later.";
+        });
+    });
+</script>
+
+</body>
+</html>
