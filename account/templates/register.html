@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login with Face Recognition</title>
+    <style>
+        body {
+            background: #f2f4f8;
+        }
+
+        .box {
+            width: 350px;
+            margin: 40px auto;
+            padding: 20px 25px 25px;
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            text-align: center;
+            font-family: Arial, sans-serif;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+        }
+
+        .box h3 {
+            margin-top: 0;
+            margin-bottom: 20px;
+            font-size: 20px;
+        }
+
+        .box input {
+            width: 90%;
+            padding: 10px;
+            margin: 10px 0 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .capture-btn {
+            background: green;
+            color: white;
+            padding: 10px 18px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .capture-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .login-btn {
+            width: 100%;
+            background: #0066ff;
+            color: white;
+            padding: 12px;
+            border: none;
+            border-radius: 5px;
+            margin-top: 10px;
+            cursor: pointer;
+            font-size: 15px;
+        }
+
+        video, canvas {
+            width: 100%;
+            border-radius: 10px;
+            margin-top: 10px;
+            background: #000;
+        }
+
+        #message {
+            margin-top: 10px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<div class="box">
+    <h3>Login with Face Recognition</h3>
+
+    <input type="text" id="username" placeholder="Enter your name">
+
+    <button class="capture-btn" id="capture-button">Capture</button>
+
+    <video id="camera" autoplay></video>
+    <canvas id="canvas" width="350" height="250" style="display:none"></canvas>
+
+    <div id="message"></div>
+
+    <button class="login-btn" onclick="window.location.href='{% url 'login' %}'">Go To Login</button>
+
+</div>
+
+<script>
+    const video = document.getElementById('camera');
+    const canvas = document.getElementById('canvas');
+    const captureButton = document.getElementById('capture-button');
+    const loginBtn = document.getElementById('login-btn');
+    const usernameInput = document.getElementById('username');
+    const messageDiv = document.getElementById('message');
+
+    let lastRegisterStatus = null;
+
+    navigator.mediaDevices.getUserMedia({ video: true })
+        .then((stream) => {
+            video.srcObject = stream;
+        })
+        .catch((err) => {
+            messageDiv.style.color = "red";
+            messageDiv.innerHTML = "Camera not accessible. Please allow the camera.";
+        });
+
+    function checkUsername() {
+        const username = usernameInput.value.trim();
+        if (username === "") {
+            messageDiv.style.color = "red";
+            messageDiv.innerHTML = "Firt Go and write your name!";
+            return false;
+        }
+        return true;
+    }
+
+    captureButton.addEventListener('click', () => {
+        if (!checkUsername()) return;
+
+        if (!video.srcObject) {
+            messageDiv.style.color = "red";
+            messageDiv.innerHTML = "Please allow your camera!";
+            return;
+        }
+
+        const context = canvas.getContext('2d');
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        const capturedImage = canvas.toDataURL('image/jpeg');
+
+        messageDiv.style.color = "orange";
+        messageDiv.innerHTML = "Checking face on server... ⏳";
+        captureButton.disabled = true;
+
+        const formData = new FormData();
+        formData.append("username", usernameInput.value.trim());
+        formData.append("face_image", capturedImage);
+
+        fetch("/register/", {
+            method: "POST",
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            captureButton.disabled = false;
+
+            if (data.status === "success") {
+                lastRegisterStatus = "success";
+                messageDiv.style.color = "green";
+                messageDiv.innerHTML = data.message || "face register successfuly!";
+            } else {
+                lastRegisterStatus = "error";
+                messageDiv.style.color = "red";
+                messageDiv.innerHTML = data.message || "Face not registered Properly. Try agein. ";
+            }
+        })
+        .catch((error) => {
+            captureButton.disabled = false;
+            lastRegisterStatus = "error";
+            messageDiv.style.color = "red";
+            messageDiv.innerHTML = "Server error! Try again sometime.";
+            console.error(error);
+        });
+    });
+
+    loginBtn.addEventListener('click', () => {
+        if (!checkUsername()) return;
+
+        if (lastRegisterStatus !== "success") {
+            messageDiv.style.color = "red";
+            messageDiv.innerHTML = "Capture your face(Capture & Register Face dabao).";
+            return;
+        }
+
+        messageDiv.style.color = "green";
+        messageDiv.innerHTML = "Registration done. Now you can Login!";
+    });
+</script>
+
+</body>
+</html>

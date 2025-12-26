@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Delete User</title>
+    <style>
+        body {
+            background: #f2f4f8;
+        }
+
+        .box {
+            width: 350px;
+            margin: 40px auto;
+            padding: 20px 25px 25px;
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            text-align: center;
+            font-family: Arial, sans-serif;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+        }
+
+        .box h3 {
+            margin-top: 0;
+            margin-bottom: 20px;
+            font-size: 20px;
+        }
+
+        .box input {
+            width: 90%;
+            padding: 10px;
+            margin: 10px 0 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .delete-btn {
+            width: 100%;
+            background: #e02424;
+            color: white;
+            padding: 12px;
+            border: none;
+            border-radius: 5px;
+            margin-top: 10px;
+            cursor: pointer;
+            font-size: 15px;
+        }
+
+        #message {
+            margin-top: 10px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<div class="box">
+    <h3>Delete User</h3>
+
+    <input type="text" id="login_id" placeholder="Enter Login ID">
+    <input type="text" id="username" placeholder="Enter Username">
+
+    <div id="message"></div>
+
+    <button class="delete-btn" id="delete-btn">Delete User</button>
+</div>
+
+<script>
+    const loginIdInput = document.getElementById('login_id');
+    const usernameInput = document.getElementById('username');
+    const messageDiv = document.getElementById('message');
+    const deleteBtn = document.getElementById('delete-btn');
+
+    function validateInputs() {
+        if (loginIdInput.value.trim() === "" || usernameInput.value.trim() === "") {
+            messageDiv.style.color = "red";
+            messageDiv.innerHTML = "First write both login ID and username!";
+            return false;
+        }
+        return true;
+    }
+
+    deleteBtn.addEventListener('click', () => {
+        if (!validateInputs()) return;
+
+        const formData = new FormData();
+        formData.append("login_id", loginIdInput.value.trim());
+        formData.append("username", usernameInput.value.trim());
+
+        messageDiv.style.color = "orange";
+        messageDiv.innerHTML = "Deleting user... ⏳";
+
+        fetch("/delete/", {
+            method: "POST",
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === "success") {
+                messageDiv.style.color = "green";
+                messageDiv.innerHTML = data.message;
+            } else {
+                messageDiv.style.color = "red";
+                messageDiv.innerHTML = data.message;
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            messageDiv.style.color = "red";
+            messageDiv.innerHTML = "Server error! Please try again later.";
+        });
+    });
+</script>
+
+</body>
+</html>
