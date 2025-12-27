@@ -19,9 +19,11 @@ from django.urls import path, include
 from account.views import register, login_view, delete_user, dashboard
 
 urlpatterns = [
+    path('', login_view, name='home'),   # 👈 THIS IS THE FIX
     path('register/', register, name='register'),
     path('login/', login_view, name='login'),
     path('delete/', delete_user, name='delete_user'),
-     path('dashboard/', dashboard, name='dashboard'),
+    path('dashboard/', dashboard, name='dashboard'),
     path('admin/', admin.site.urls),
 ]
+
